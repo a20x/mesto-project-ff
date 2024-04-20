@@ -1,3 +1,6 @@
+import './pages/index.css';
+import {initialCards} from './cards.js';
+
 // @todo: Темплейт карточки
 
 // @todo: DOM узлы
@@ -9,7 +12,7 @@
 // @todo: Вывести карточки на страницу
 
 const cardsContainer = document.querySelector('.places__list');
-
+const editButtonProfile = document.querySelector('.profile__edit-button');
 const cardTemplate = document.querySelector('#card-template').content;
 
 function createCard(cardData, deleteOnButtonClick) {
@@ -28,13 +31,21 @@ function createCard(cardData, deleteOnButtonClick) {
   })
 
   return cardTemplateContent;
-}
+};
 
 function deleteCard(elementToDelete) {
   elementToDelete.remove();
-}
+};
 
 initialCards.forEach(function(initialCardData) {
   const newCard = createCard(initialCardData, deleteCard);
   cardsContainer.append(newCard);
 });
+
+editButtonProfile.addEventListener('click', function() {
+  const popupProfileEdit = document.querySelector('.popup_type_edit');
+  popupProfileEdit.style.display = 'block';
+
+  
+});
+

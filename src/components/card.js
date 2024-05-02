@@ -20,7 +20,9 @@ export function createCard(cardData, deleteOnButtonClick, likeButtonOnClick, ope
 
   cardLikeButton.addEventListener("click", likeButtonOnClick);
 
-  cardImage.addEventListener("click", openCardImagePopupOnClick);
+  cardImage.addEventListener("click", function() {
+    openCardImagePopupOnClick(cardData.link, cardData.name)
+  });
 
   return cardTemplateContent;
 };

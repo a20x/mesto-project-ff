@@ -36,8 +36,9 @@ editButtonProfile.addEventListener('click', openEditProfile);
 
 addNewCardButton.addEventListener('click', function() {
   openModal(popupNewCard);
-  popupNewCard.addEventListener('submit', addNewCard);
 });
+
+popupNewCard.addEventListener('submit', addNewCard);
 
 // открытие редактирования профиля
 
@@ -50,11 +51,8 @@ const profileDescription = document.querySelector('.profile__description');
 function openEditProfile() {
   openModal(popupProfileEdit);
 
-  const nameInputValue = profileTitle.textContent;
-  const jobInputValue = profileDescription.textContent;
-
-  nameInput.value = nameInputValue;
-  jobInput.value = jobInputValue;
+  nameInput.value = profileTitle.textContent;
+  jobInput.value = profileDescription.textContent;
 }
 
 // редактирование данных профиля
@@ -70,9 +68,9 @@ function editProfileInfo(evt) {
 
 // слушатель на submit формы
 
-const popupSubmitForm = document.querySelector('.popup__form');
+const profileEditForm = popupProfileEdit.querySelector('.popup__form');
 
-popupSubmitForm.addEventListener('submit', editProfileInfo);
+profileEditForm.addEventListener('submit', editProfileInfo);
 
 // функция добавления новой карточки
 
@@ -102,18 +100,13 @@ function addNewCard(evt) {
 
 // открытие попапа с картинкой
 
-function openImagePopup(evt) {
+function openImagePopup(cardLink, cardName) {
   openModal(popupTypeImage);
-
-  const card = evt.target.closest('.card');
-
-  const cardImage = card.querySelector('.card__image');
-  const cardTitle = card.querySelector('.card__title');
 
   const popupImage = document.querySelector('.popup__image');
   const popupCaption = document.querySelector('.popup__caption');
 
-  popupImage.src = cardImage.src;
-  popupImage.alt = cardImage.alt;
-  popupCaption.textContent = cardTitle.textContent;
-};
+  popupImage.src = cardLink;
+  popupImage.alt = cardName;
+  popupCaption.textContent = cardName;
+}

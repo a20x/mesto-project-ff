@@ -45,4 +45,5 @@ function popupCloseOnOverlay(evt) {
   if (evt.target.classList.contains('popup')) {
     closeModal(evt.target);
   }
-}
+};
+

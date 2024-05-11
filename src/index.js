@@ -95,6 +95,12 @@ function addNewCard(evt) {
   popupInputCardName.value = '';
   popupInputCardUrl.value = '';
 
+  const formElement = document.querySelectorAll('.popup__form');
+  const inputList = Array.from(formElement.querySelectorAll('.popup__input'));
+  const buttonElement = formElement.querySelector('.popup__button');
+
+  buttonCurrentState(inputList, buttonElement);
+
   closeModal(popupNewCard);
 };
 
@@ -109,4 +115,89 @@ function openImagePopup(cardLink, cardName) {
   popupImage.src = cardLink;
   popupImage.alt = cardName;
   popupCaption.textContent = cardName;
+};
+
+// функция показа ошибки у формы 
+
+function showPopupInputError(formElement, inputElement, errorMessage) {
+  const formInputError = formElement.querySelector(`.${inputElement.id}-error`);
+  formInputError.textContent = errorMessage;
+  formInputError.classList.add('form__input-error-active');
+  inputElement.classList.add('form__input_type_error');
+};
+
+// функция скрытия ошибки у формы
+
+function hidePopupInputError(formElement, inputElement) {
+  const formInputError = formElement.querySelector(`.${inputElement.id}-error`);
+  formInputError.textContent = '';
+  formInputError.classList.remove('form__input-error-active');
+  inputElement.classList.remove('form__input_type_error');
+};
+
+// функция валидации инпута
+
+function checkInputValidation(formElement, inputElement) {
+  if (!inputElement.validity.valid) {
+    showPopupInputError(formElement, inputElement, inputElement.validationMessage);
+  } else {
+    hidePopupInputError(formElement, inputElement);
+  }
+};
+
+// функция обработчик всех инпутов формы
+
+function setEventListeners(formElement) {
+  const inputList = Array.from(formElement.querySelectorAll('.popup__input'));
+  const buttonElement = formElement.querySelector('.popup__button');
+
+  buttonCurrentState(inputList, buttonElement);
+
+  inputList.forEach((inputElement) => {
+    inputElement.addEventListener('input', () => {
+      checkInputValidation(formElement, inputElement);
+      buttonCurrentState(inputList, buttonElement);
+    });
+  });
+};
+
+// функция валидации формы
+
+function formValidation() {
+  const formList = Array.from(document.querySelectorAll('.popup__form'));
+
+  formList.forEach((formElement) => {
+    formElement.addEventListener('submit', (evt) => {
+      evt.preventDefault();
+    });
+    setEventListeners(formElement);
+  })
+};
+
+// функция поиска невалидного инпута
+
+function invalidInput(inputList) {
+  return inputList.some((listElement) => {
+    return !listElement.validity.valid;
+  })
+};
+
+// функция переключения кнопки в активную или наоборот
+
+function buttonCurrentState(inputList, buttonElement) {
+  if(invalidInput(inputList)) {
+    buttonElement.setAttribute('disabled', '');
+    buttonElement.classList.add('popup__button-disabled');
+  } else {
+    buttonElement.removeAttribute('disabled', '');
+    buttonElement.classList.remove('popup__button-disabled');
+  }
+};
+
+// функция очистки ошибок полей ввода в попапе
+
+function clearInputErrors(formElement) {
+
 }
+
+formValidation();

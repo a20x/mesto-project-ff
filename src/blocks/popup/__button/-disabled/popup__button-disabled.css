@@ -1,4 +1,4 @@
-.popup__button-disabled {
+.popup__button_disabled {
   background-color: transparent;
   color: rgb(0, 0, 0, 0.2);
   cursor: not-allowed;

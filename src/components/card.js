@@ -7,6 +7,7 @@ export function createCard(cardData, deleteOnButtonClick, likeButtonOnClick, ope
 
   const cardImage = cardTemplateContent.querySelector(".card__image");
   const cardTitle = cardTemplateContent.querySelector(".card__title");
+
   const cardDeleteButton = cardTemplateContent.querySelector(".card__delete-button");
   const cardLikeButton =cardTemplateContent.querySelector(".card__like-button");
 

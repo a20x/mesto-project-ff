@@ -35,18 +35,6 @@ export const validationConfig = {
   errorClass: "popup__error_visible",
 };
 
-//функция добавления карточек на страницу
-
-/* initialCards.forEach(function (initialCardData) {
-  const newCard = createCard(
-    initialCardData,
-    deleteCard,
-    likeButton,
-    openImagePopup
-  );
-  cardsContainer.append(newCard);
-}); */
-
 //открытие попапов на клик
 
 editButtonProfile.addEventListener("click", function () {
@@ -65,7 +53,9 @@ addNewCardButton.addEventListener("click", function () {
   );
 });
 
-popupNewCard.addEventListener("submit", addNewCard);
+popupNewCard.addEventListener("submit", (evt) => {
+  addNewCard(evt);
+});
 
 // открытие редактирования профиля
 
@@ -107,29 +97,30 @@ profileEditForm.addEventListener("submit", (evt) => {
 function addNewCard(evt) {
   evt.preventDefault();
 
-  const popupInputCardName = popupNewCard.querySelector(
-    ".popup__input_type_card-name"
-  );
+  const popupInputCardName = popupNewCard.querySelector(".popup__input_type_card-name");
   const popupInputCardUrl = popupNewCard.querySelector(
     ".popup__input_type_url"
   );
 
-  const popupInputCardNameValue = popupInputCardName.value;
-  const popupInputCardUrlValue = popupInputCardUrl.value;
-
   const newCardData = {
-    name: popupInputCardNameValue,
-    link: popupInputCardUrlValue,
+    name: popupInputCardName.value,
+    link: popupInputCardUrl.value,
   };
 
-  const createNewCard = createCard(
-    newCardData,
-    deleteCard,
-    likeButton,
-    openImagePopup
-  );
-
-  cardsContainer.prepend(createNewCard);
+  Promise.all([postNewCard(newCardData), getUserData()])
+    .then(([cardData, userData]) => {
+      return createCard(
+        cardData,
+        deleteCard,
+        likeButton,
+        openImagePopup,
+        cardLikeCounter,
+        userData
+      );
+    })
+    .then((res) => {
+      cardsContainer.prepend(res);
+    })
 
   popupInputCardName.value = "";
   popupInputCardUrl.value = "";
@@ -161,51 +152,78 @@ function getUserData() {
       authorization: "566ffc24-d213-4917-9ff7-327708d679d6",
     },
   })
-    .then((data) => data.json())
-    .then((data) => {
-      console.log(data); // проверка, что данные пришли и какие
+    .then((response) => {
+      return response.json();
+    })
+}
+
+// установка данных пользователя в профиль
+
+function setProfileUserData() {
+  getUserData()
+    .then((userData) => {
+      //console.log(userData._id); // проверка, что данные пришли и какие
 
       const profileImage = document.querySelector(".profile__image");
 
-      profileImage.style.backgroundImage = `url${data.avatar}`;
-      profileTitle.textContent = data.name;
-      profileDescription.textContent = data.about;
+      profileImage.style.backgroundImage = `url${userData.avatar}`;
+      profileTitle.textContent = userData.name;
+      profileDescription.textContent = userData.about;
     });
 }
 
 // получение и отображение карточек с сервера
 
 function getCardsData() {
-  return fetch("https://nomoreparties.co/v1/wff-cohort-13/cards ", {
+  return fetch("https://nomoreparties.co/v1/wff-cohort-13/cards", {
     method: "GET",
     headers: {
       authorization: "566ffc24-d213-4917-9ff7-327708d679d6",
     },
   })
-    .then((res) => res.json())
+  .then((res) => {
+    return res.json();
+  })
+}
+
+/* function showCards() {
+  getCardsData()
     .then((cardsData) => {
       console.log(cardsData);
-
       cardsData.forEach((cardData) => {
         const makeCard = createCard(
           cardData,
           deleteCard,
           likeButton,
-          openImagePopup
+          openImagePopup,
+          cardLikeCounter,
+          getUserData
         );
         cardsContainer.append(makeCard);
       });
     });
-}
+} */
 
 // ждем выполнение запросов о данных пользователя и данных карточки, и вызываем их функции
 
-Promise.all([getUserData, getCardsData]).then(() => {
-  getUserData();
-  getCardsData();
-});
+Promise.all([getUserData(), getCardsData()])
+  .then(([userData, cardsData]) => {
+    setProfileUserData();
 
-//
+    cardsData.forEach((cardData) => {
+      const makeCard = createCard(
+        cardData,
+        deleteCard,
+        likeButton,
+        openImagePopup,
+        cardLikeCounter,
+        userData
+      );
+      cardsContainer.append(makeCard);
+    });
+  });
+
+// отправка и изменение данных профиля 
 
 function changeProfileInfo() {
   return fetch("https://nomoreparties.co/v1/wff-cohort-13/users/me", {
@@ -222,19 +240,73 @@ function changeProfileInfo() {
     .then((data) => {
       return data.json();
     })
-    .then((data) => {
-      console.log(data);
-    });
-}
+};
 
-// changeProfileInfo();
+// отправка на сервер данных о новой карточке
 
-function postNewCard() {
+function postNewCard(popupNameAndUrlData) {
   return fetch("https://nomoreparties.co/v1/wff-cohort-13/cards", {
     method: "POST",
     headers: {
       authorization: "566ffc24-d213-4917-9ff7-327708d679d6",
-      "Content-Type": "",
+      "Content-Type": "application/json",
     },
-  });
+    body: JSON.stringify({
+      name: popupNameAndUrlData.name,
+      link: popupNameAndUrlData.link
+    })
+  })
+  .then(cardData => {
+    return cardData.json();
+  })
+};
+
+// функция - счетчик количества лайков на карточке
+
+function cardLikeCounter(cardElement, amountOfLikes) {
+  const cardLikeCount = cardElement.querySelector('.card__like-counter');
+
+  if(amountOfLikes > 0) {
+    cardLikeCount.classList.add('card__like-counter-active');
+    cardLikeCount.textContent = amountOfLikes;
+  } else {
+    cardLikeCount.classList.remove('card__like-counter-active');
+    cardLikeCount.textContent = '';
+  }
+}
+
+// функция удаления карточки на сервере
+
+export function deleteCardOnServer(cardId) {
+  return fetch(`https://nomoreparties.co/v1/wff-cohort-13/cards/${cardId}`, {
+    method: 'DELETE',
+    headers: {
+      authorization: "566ffc24-d213-4917-9ff7-327708d679d6"
+    }
+  })
+}
+
+// функция постановки лайка, с отправкой данных на сервер
+
+export function cardLikeButtonOn(cardId) {
+  return fetch(`https://nomoreparties.co/v1/wff-cohort-13/cards/likes/${cardId}`, {
+    method: 'PUT',
+    headers: {
+      authorization: "566ffc24-d213-4917-9ff7-327708d679d6"
+    }
+  })
+  .then((res) => {
+    return res.json();
+  })
+}
+
+// функция удаления лайка, с отправкой данных на сервер
+
+export function cardLikeButtonOff(cardId) {
+  return fetch(`https://nomoreparties.co/v1/wff-cohort-13/cards/likes/${cardId}`, {
+    method: 'DELETE',
+    headers: {
+      authorization: "566ffc24-d213-4917-9ff7-327708d679d6"
+    }
+  })
 }

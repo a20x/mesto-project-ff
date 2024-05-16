@@ -1,6 +1,8 @@
+import { deleteCardOnServer, cardLikeButtonOn, cardLikeButtonOff } from '../index.js'
+
 //функция создания карточек
 
-export function createCard(cardData, deleteOnButtonClick, likeButtonOnClick, openCardImagePopupOnClick) {
+export function createCard(cardData, deleteOnButtonClick, likeButtonOnClick, openCardImagePopupOnClick, cardLikeCounter, userData) {
   const cardTemplate = document.querySelector('#card-template').content;
   
   const cardTemplateContent = cardTemplate.querySelector(".card").cloneNode(true);
@@ -15,11 +17,24 @@ export function createCard(cardData, deleteOnButtonClick, likeButtonOnClick, ope
   cardImage.alt = cardData.name;
   cardTitle.textContent = cardData.name;
 
-  cardDeleteButton.addEventListener("click", function () {
-    deleteOnButtonClick(cardTemplateContent);
-  });
+  cardLikeCounter(cardTemplateContent, cardData.likes.length);
 
-  cardLikeButton.addEventListener("click", likeButtonOnClick);
+  console.log(cardData);
+
+  const cardId = cardData['_id'];
+
+  if(userData['_id'] === cardData.owner['_id']) {
+    cardDeleteButton.classList.add('card__delete-button-correct-user');
+    cardDeleteButton.addEventListener("click", function () {
+      deleteOnButtonClick(cardTemplateContent, cardId);
+    });
+  } else {
+    cardDeleteButton.classList.remove('card__delete-button-correct-user');
+  }
+
+  cardLikeButton.addEventListener("click", (evt) => {
+    likeButtonOnClick(evt, cardId);
+  });
 
   cardImage.addEventListener("click", function() {
     openCardImagePopupOnClick(cardData.link, cardData.name)
@@ -30,15 +45,22 @@ export function createCard(cardData, deleteOnButtonClick, likeButtonOnClick, ope
 
 //функция удаления карточек
 
-export function deleteCard(elementToDelete) {
+export function deleteCard(elementToDelete, cardId) {
   elementToDelete.remove();
+  deleteCardOnServer(cardId);
 };
 
 // функция лайка карточки
 
-export function likeButton(evt) {
-  if (evt.target.classList.contains('card__like-button')) {
+export function likeButton(evt, cardId) {
+  if(evt.target.classList.contains('card__like-button')) {
     const likeButton = evt.target;
-    likeButton.classList.toggle('card__like-button_is-active');
+    if(!likeButton.classList.contains('card__like-button_is-active')) {
+      likeButton.classList.add('card__like-button_is-active');
+      cardLikeButtonOn(cardId);
+    } else {
+      likeButton.classList.remove('card__like-button_is-active');
+      cardLikeButtonOff(cardId);
+    }
   }
 };

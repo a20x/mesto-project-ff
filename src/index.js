@@ -1,8 +1,8 @@
 import "./pages/index.css";
-import { initialCards } from "./cards.js";
 import { createCard, deleteCard, likeButton } from "./components/card.js";
 import { openModal, closeModal } from "./components/modal.js";
 import { enableValidation, clearValidation } from "./components/validation.js";
+import { getUserData, getCardsData, editProfileInfoOnServer, postNewCard, changeAvatarOnServer, configAPI, checkImageUrl } from './components/api.js';
 
 // @todo: Темплейт карточки
 
@@ -22,7 +22,6 @@ const popupProfileEdit = document.querySelector(".popup_type_edit");
 const addNewCardButton = document.querySelector(".profile__add-button");
 const popupNewCard = document.querySelector(".popup_type_new-card");
 const popupTypeImage = document.querySelector(".popup_type_image");
-const profileInfo = document.querySelector(".profile__info");
 
 // объект с необходимыми классами
 
@@ -32,7 +31,7 @@ export const validationConfig = {
   submitButtonSelector: ".popup__button",
   inactiveButtonClass: "popup__button_disabled",
   inputErrorClass: "popup__input_type_error",
-  errorClass: "popup__error_visible",
+  errorClass: "popup__error_visible"
 };
 
 //открытие попапов на клик
@@ -57,10 +56,12 @@ popupNewCard.addEventListener("submit", (evt) => {
   addNewCard(evt);
 });
 
+// функция открытия попапа для подтверждения удаления карточки
+
 // открытие редактирования профиля
 
-const nameInput = document.querySelector(".popup__input_type_name");
-const jobInput = document.querySelector(".popup__input_type_description");
+export const nameInput = document.querySelector(".popup__input_type_name");
+export const jobInput = document.querySelector(".popup__input_type_description");
 
 const profileTitle = document.querySelector(".profile__title");
 const profileDescription = document.querySelector(".profile__description");
@@ -74,13 +75,17 @@ function openEditProfile() {
 
 // редактирование данных профиля
 
-function editProfileInfo(evt) {
-  evt.preventDefault();
-
+function editProfileInfo() {
+  const popupProfileEditSubmitButton = popupProfileEdit.querySelector('.popup__button');
+  popupProfileEditSubmitButton.textContent = 'Сохранение...';
   profileTitle.textContent = nameInput.value;
   profileDescription.textContent = jobInput.value;
 
-  closeModal(popupProfileEdit);
+  editProfileInfoOnServer(configAPI)
+    .then(() => {
+      popupProfileEditSubmitButton.textContent = 'Сохранить';
+      closeModal(popupProfileEdit);
+    })
 }
 
 // слушатель на submit формы
@@ -88,14 +93,17 @@ function editProfileInfo(evt) {
 const profileEditForm = popupProfileEdit.querySelector(".popup__form");
 
 profileEditForm.addEventListener("submit", (evt) => {
-  editProfileInfo(evt);
-  changeProfileInfo();
+  evt.preventDefault();
+  editProfileInfo();
 })
 
 // функция добавления новой карточки
 
 function addNewCard(evt) {
   evt.preventDefault();
+
+  const popupAddNewCardSubmitButton = popupNewCard.querySelector('.popup__button');
+  popupAddNewCardSubmitButton.textContent = 'Сохранение...';
 
   const popupInputCardName = popupNewCard.querySelector(".popup__input_type_card-name");
   const popupInputCardUrl = popupNewCard.querySelector(
@@ -107,7 +115,7 @@ function addNewCard(evt) {
     link: popupInputCardUrl.value,
   };
 
-  Promise.all([postNewCard(newCardData), getUserData()])
+  Promise.all([postNewCard(newCardData, configAPI), getUserData(configAPI)])
     .then(([cardData, userData]) => {
       return createCard(
         cardData,
@@ -120,12 +128,14 @@ function addNewCard(evt) {
     })
     .then((res) => {
       cardsContainer.prepend(res);
+      popupInputCardName.value = "";
+      popupInputCardUrl.value = "";
+
+      popupAddNewCardSubmitButton.textContent = 'Сохранить';
     })
-
-  popupInputCardName.value = "";
-  popupInputCardUrl.value = "";
-
-  closeModal(popupNewCard);
+    .then(() => {
+      closeModal(popupNewCard);
+    })
 }
 
 // открытие попапа с картинкой
@@ -143,70 +153,28 @@ function openImagePopup(cardLink, cardName) {
 
 enableValidation(validationConfig);
 
-// получение и отображение информации в профиле
-
-function getUserData() {
-  return fetch("https://nomoreparties.co/v1/wff-cohort-13/users/me", {
-    method: "GET",
-    headers: {
-      authorization: "566ffc24-d213-4917-9ff7-327708d679d6",
-    },
-  })
-    .then((response) => {
-      return response.json();
-    })
-}
-
 // установка данных пользователя в профиль
 
+const profileImage = document.querySelector(".profile__image");
+
 function setProfileUserData() {
-  getUserData()
+  getUserData(configAPI)
     .then((userData) => {
-      //console.log(userData._id); // проверка, что данные пришли и какие
-
-      const profileImage = document.querySelector(".profile__image");
-
-      profileImage.style.backgroundImage = `url${userData.avatar}`;
+      profileImage.style.backgroundImage = `url('${userData.avatar}')`;
       profileTitle.textContent = userData.name;
       profileDescription.textContent = userData.about;
     });
 }
 
-// получение и отображение карточек с сервера
+const popupEditAvatar = document.querySelector('.popup_type_edit_avatar');
 
-function getCardsData() {
-  return fetch("https://nomoreparties.co/v1/wff-cohort-13/cards", {
-    method: "GET",
-    headers: {
-      authorization: "566ffc24-d213-4917-9ff7-327708d679d6",
-    },
-  })
-  .then((res) => {
-    return res.json();
-  })
-}
-
-/* function showCards() {
-  getCardsData()
-    .then((cardsData) => {
-      console.log(cardsData);
-      cardsData.forEach((cardData) => {
-        const makeCard = createCard(
-          cardData,
-          deleteCard,
-          likeButton,
-          openImagePopup,
-          cardLikeCounter,
-          getUserData
-        );
-        cardsContainer.append(makeCard);
-      });
-    });
-} */
+profileImage.addEventListener('click', () => {
+  openModal(popupEditAvatar);
+})
 
 // ждем выполнение запросов о данных пользователя и данных карточки, и вызываем их функции
 
-Promise.all([getUserData(), getCardsData()])
+Promise.all([getUserData(configAPI), getCardsData(configAPI)])
   .then(([userData, cardsData]) => {
     setProfileUserData();
 
@@ -223,47 +191,9 @@ Promise.all([getUserData(), getCardsData()])
     });
   });
 
-// отправка и изменение данных профиля 
-
-function changeProfileInfo() {
-  return fetch("https://nomoreparties.co/v1/wff-cohort-13/users/me", {
-    method: "PATCH",
-    headers: {
-      authorization: "566ffc24-d213-4917-9ff7-327708d679d6",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name: nameInput.value,
-      about: jobInput.value,
-    }),
-  })
-    .then((data) => {
-      return data.json();
-    })
-};
-
-// отправка на сервер данных о новой карточке
-
-function postNewCard(popupNameAndUrlData) {
-  return fetch("https://nomoreparties.co/v1/wff-cohort-13/cards", {
-    method: "POST",
-    headers: {
-      authorization: "566ffc24-d213-4917-9ff7-327708d679d6",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name: popupNameAndUrlData.name,
-      link: popupNameAndUrlData.link
-    })
-  })
-  .then(cardData => {
-    return cardData.json();
-  })
-};
-
 // функция - счетчик количества лайков на карточке
 
-function cardLikeCounter(cardElement, amountOfLikes) {
+export function cardLikeCounter(cardElement, amountOfLikes) {
   const cardLikeCount = cardElement.querySelector('.card__like-counter');
 
   if(amountOfLikes > 0) {
@@ -275,38 +205,31 @@ function cardLikeCounter(cardElement, amountOfLikes) {
   }
 }
 
-// функция удаления карточки на сервере
+// функция смены аватара
 
-export function deleteCardOnServer(cardId) {
-  return fetch(`https://nomoreparties.co/v1/wff-cohort-13/cards/${cardId}`, {
-    method: 'DELETE',
-    headers: {
-      authorization: "566ffc24-d213-4917-9ff7-327708d679d6"
-    }
-  })
-}
+const popupTypeAvatar = document.querySelector('.popup_type_edit_avatar');
 
-// функция постановки лайка, с отправкой данных на сервер
+function changeAvatar() {
+  const popupAvatarInput = popupTypeAvatar.querySelector('.popup__input_type_url');
+  const popupAvatarButton = popupTypeAvatar.querySelector('.popup__button');
+  popupAvatarButton.textContent = 'Сохранение...';
 
-export function cardLikeButtonOn(cardId) {
-  return fetch(`https://nomoreparties.co/v1/wff-cohort-13/cards/likes/${cardId}`, {
-    method: 'PUT',
-    headers: {
-      authorization: "566ffc24-d213-4917-9ff7-327708d679d6"
-    }
-  })
-  .then((res) => {
-    return res.json();
-  })
-}
+  profileImage.style.backgroundImage = `url('${popupAvatarInput.value}')`;
 
-// функция удаления лайка, с отправкой данных на сервер
+  const avatarLink = popupAvatarInput.value;
 
-export function cardLikeButtonOff(cardId) {
-  return fetch(`https://nomoreparties.co/v1/wff-cohort-13/cards/likes/${cardId}`, {
-    method: 'DELETE',
-    headers: {
-      authorization: "566ffc24-d213-4917-9ff7-327708d679d6"
-    }
-  })
-}
+  checkImageUrl(avatarLink, configAPI)
+    .then(() => {
+      return changeAvatarOnServer(avatarLink, configAPI);
+    })
+    .then(() => {
+      popupAvatarInput.value = '';
+      popupAvatarButton.textContent = 'Сохранить';
+      closeModal(popupTypeAvatar);
+    })
+};
+
+popupTypeAvatar.addEventListener('submit', (evt) => {
+  evt.preventDefault();
+  changeAvatar();
+});
